@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="hu" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DC-CORE // Adatközponti Infrastruktúra & Telemetria</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        obsidian: '#050811',
+                        slateDark: '#0a0f1d',
+                        cardBg: 'rgba(15, 23, 42, 0.75)',
+                        neonCyan: '#06b6d4',
+                        neonBlue: '#3b82f6',
+                        neonEmerald: '#10b981',
+                        neonAmber: '#f59e0b',
+                        neonCrimson: '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Egyedi kiber-indusztriális stílusok és háttérrács */
+        body {
+            background-color: #050811;
+            color: #f1f5f9;
+            background-image: 
+                linear-gradient(to right, rgba(6, 182, 212, 0.04) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(6, 182, 212, 0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+            overflow-x: hidden;
+        }
+
+        .radial-glow {
+            background: radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.15) 0%, rgba(59, 130, 246, 0.05) 45%, transparent 75%);
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.18);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 20px 0 rgba(6, 182, 212, 0.05);
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(6, 182, 212, 0.35);
+        }
+
+        /* Áramlási animáció az elektromos vonalakhoz */
+        @keyframes powerFlow {
+            0% { stroke-dashoffset: 24; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        .flow-active {
+            stroke-dasharray: 8 4;
+            animation: powerFlow 0.7s linear infinite;
+        }
+
+        .flow-inactive {
+            stroke-dasharray: 4 4;
+            opacity: 0.25;
+        }
+
+        /* Egyedi csúszkák (Range Sliders) */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #1e293b;
+            border-radius: 4px;
+            border: 1px solid #334155;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #06b6d4;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -8px;
+            box-shadow: 0 0 12px #06b6d4;
+            border: 2px solid #ffffff;
+            transition: transform 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        /* Szkennelő fénycsík a képeken */
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(500%); }
+        }
+        .scan-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 25%;
+            background: linear-gradient(to bottom, transparent, rgba(6, 182, 212, 0.15), transparent);
+            animation: scanline 6s linear infinite;
+            pointer-events: none;
+        }
+
+        /* Egyedi görgetősáv */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050811;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+            border: 1px solid #06b6d4;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-neonCyan selection:text-obsidian">
+
+    <!-- STICKY TELEMETRIA NAVIGÁCIÓS SÁV -->
+    <nav class="sticky top-0 z-50 glass-panel border-t-0 border-x-0 border-b border-cyan-500/20 px-4 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <!-- Brand / Logo -->
+            <a href="#" class="flex items-center gap-3 group">
+                <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-neonCyan shadow-[0_0_15px_rgba(6,182,212,0.3)] group-hover:bg-cyan-500/20 transition">
+                    <i class="fa-solid fa-server text-lg"></i>
+                </div>
+                <div>
+                    <div class="font-mono font-bold text-lg tracking-wider text-white flex items-center gap-2">
+                        DC-CORE <span class="text-xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-neonCyan border border-cyan-500/30">v4.2</span>
+                    </div>
+                    <div class="text-[11px] font-mono text-slate-400 uppercase tracking-widest">Infrastruktúra & Telemetria</div>
+                </div>
+            </a>
+
+            <!-- Navigációs linkek -->
+            <div class="hidden md:flex items-center space-x-1 lg:space-x-2 font-mono text-xs uppercase tracking-wider">
+                <a href="#energetika" class="px-3 py-2 rounded-md text-slate-300 hover:text-neonCyan hover:bg-slate-800/60 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt text-neonCyan"></i> 01. Energetika & PUE
+                </a>
+                <a href="#redundancia" class="px-3 py-2 rounded-md text-slate-300 hover:text-neonEmerald hover:bg-slate-800/60 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-shield-halved text-neonEmerald"></i> 02. Redundancia (2N+1)
+                </a>
+                <a href="#ai-szerepe" class="px-3 py-2 rounded-md text-slate-300 hover:text-neonBlue hover:bg-slate-800/60 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-microchip text-neonBlue"></i> 03. AI & Hőmenedzsment
+                </a>
+                <a href="#tier-matrix" class="px-3 py-2 rounded-md text-slate-300 hover:text-purple-400 hover:bg-slate-800/60 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-layer-group text-purple-400"></i> Tier Szabványok
+                </a>
+            </div>
+
+            <!-- Élő Rendszer Státusz & Képforrás Váltó -->
+            <div class="flex items-center gap-3">
+                <div class="hidden sm:flex items-center gap-2.5 bg-slate-900/90 border border-emerald-500/30 px-3 py-1.5 rounded-full">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span class="font-mono text-[11px] font-semibold tracking-wider text-emerald-300">
+                        STÁTUSZ: ONLINE | TIER IV (99.995%)
+                    </span>
+                </div>
+
+                <button id="imgSourceBtn" onclick="toggleImageSourceModal()" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-xs font-mono text-cyan-300 border border-cyan-500/30 transition flex items-center gap-1.5" title="Helyi képek (kep1.jpg) vagy Felhő képek beállítása GitHub-hoz">
+                    <i class="fa-brands fa-github"></i> <span class="hidden xl:inline">Képforrás</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- KÉPFORRÁS KONFIGURÁTOR MODAL (GITHUB PAGES SEGÉDLET) -->
+    <div id="imageModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel max-w-lg w-full rounded-2xl p-6 border border-cyan-400/40 relative">
+            <button onclick="toggleImageSourceModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <div class="flex items-center gap-3 mb-4">
+                <i class="fa-brands fa-github text-2xl text-neonCyan"></i>
+                <h3 class="text-lg font-bold text-white font-mono">GitHub Képforrás Konfiguráció</h3>
+            </div>
+            <p class="text-sm text-slate-300 mb-4 leading-relaxed">
+                Az oldalban található <strong>3 darab illusztráció</strong> alapértelmezetten nagy felbontású adatközponti felhő-URL-eket használ, így egyetlen <code class="text-neonCyan bg-slate-900 px-1.5 py-0.5 rounded">index.html</code> fájlként feltöltve is azonnal működik.
+            </p>
+            <p class="text-sm text-slate-300 mb-5 leading-relaxed">
+                Ha a saját mentett képeidet (<code class="text-emerald-400">kep1.jpg</code>, <code class="text-emerald-400">kep2.jpg</code>, <code class="text-emerald-400">kep3.jpg</code>) töltöd fel az <code class="text-neonCyan">index.html</code> mellé a GitHub-ra, itt egyetlen kattintással átállíthatod a forrásokat!
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                <button onclick="setImageMode('cloud')" id="btnCloudMode" class="p-3 rounded-xl border border-neonCyan bg-cyan-500/20 text-left transition">
+                    <div class="font-mono text-xs font-bold text-neonCyan flex items-center justify-between">
+                        <span>1. FELHŐ MÓD (AKTÍV)</span>
+                        <i class="fa-solid fa-cloud"></i>
+                    </div>
+                    <div class="text-[11px] text-slate-300 mt-1">Azonnal működik külön képfájlok nélkül is.</div>
+                </button>
+                <button onclick="setImageMode('local')" id="btnLocalMode" class="p-3 rounded-xl border border-slate-700 bg-slate-900/60 text-left hover:border-slate-500 transition">
+                    <div class="font-mono text-xs font-bold text-emerald-400 flex items-center justify-between">
+                        <span>2. HELYI FÁJLOK MÓD</span>
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                    <div class="text-[11px] text-slate-300 mt-1">Átváltás: <code class="text-white">kep1.jpg</code>, <code class="text-white">kep2.jpg</code>, <code class="text-white">kep3.jpg</code></div>
+                </button>
+            </div>
+            <div class="text-right">
+                <button onclick="toggleImageSourceModal()" class="px-4 py-2 rounded-lg bg-neonCyan text-obsidian font-mono text-xs font-bold hover:bg-cyan-300 transition">
+                    BEZÁRÁS
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HERO SZEKCIÓ -->
+    <header class="relative radial-glow pt-12 pb-20 lg:pt-20 lg:pb-28 border-b border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 lg:px-8">
+            <div class="flex flex-col items-center text-center">
+                <!-- Felső technikai jelvény -->
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-neonCyan font-mono text-xs uppercase tracking-widest mb-6 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+                    <i class="fa-solid fa-satellite-dish animate-pulse"></i>
+                    <span>HIPERSKÁLÁZHATÓ ADATKÖZPONTI ARCHITEKTÚRA TANULMÁNY</span>
+                </div>
+
+                <!-- Főcím -->
+                <h1 class="text-4xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight text-white max-w-5xl leading-[1.1] mb-6">
+                    A Digitális Világ <br class="hidden sm:inline" />
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-emerald-400">
+                        Fizikai Gerinchálózata
+                    </span>
+                </h1>
+
+                <!-- Alcím -->
+                <p class="text-base sm:text-lg lg:text-xl text-slate-300 max-w-3xl leading-relaxed mb-10 font-light">
+                    Mélyanalízis a modern adatközpontok három legkritikusabb pilléréről: a <strong class="text-white font-medium">gigawatt-léptékű áramfogyasztásról és folyadékhűtésről</strong>, a <strong class="text-white font-medium">zéró leállást garantáló 2N+1 redundanciáról</strong>, valamint az <strong class="text-white font-medium">autonóm AI-alapú vezérlőrendszerekről</strong>.
+                </p>
+
+                <!-- Gyorsgombok -->
+                <div class="flex flex-wrap items-center justify-center gap-4 mb-16">
+                    <a href="#energetika" class="px-6 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-obsidian font-mono font-bold text-sm tracking-wide hover:brightness-110 transition shadow-[0_0_25px_rgba(6,182,212,0.4)] flex items-center gap-2">
+                        <i class="fa-solid fa-sliders"></i> INTERAKTÍV PUE KALKULÁTOR
+                    </a>
+                    <a href="#redundancia" class="px-6 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700 hover:border-neonEmerald font-mono font-semibold text-sm tracking-wide transition flex items-center gap-2">
+                        <i class="fa-solid fa-bolt-lightning text-neonEmerald"></i> ÁRAMSZÜNET SZIMULÁTOR
+                    </a>
+                </div>
+
+                <!-- Élő Telemetria Mérőszámok (4 Kártya) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+                    <div class="glass-panel rounded-2xl p-5 text-left border-l-4 border-l-neonCyan">
+                        <div class="flex items-center justify-between text-xs font-mono text-slate-400 uppercase mb-2">
+                            <span>Élvonalbeli PUE Mutató</span>
+                            <i class="fa-solid fa-gauge-high text-neonCyan"></i>
+                        </div>
+                        <div class="font-mono text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
+                            1.08 <span class="text-xs font-normal text-neonCyan">PUE</span>
+                        </div>
+                        <div class="mt-2 text-xs text-slate-400 flex items-center gap-1.5">
+                            <span class="text-emerald-400 font-mono">▼ 32%</span> a globális 1.58-as átlaghoz képest
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl p-5 text-left border-l-4 border-l-neonEmerald">
+                        <div class="flex items-center justify-between text-xs font-mono text-slate-400 uppercase mb-2">
+                            <span>Tier IV Rendelkezésre Állás</span>
+                            <i class="fa-solid fa-shield-check text-neonEmerald"></i>
+                        </div>
+                        <div class="font-mono text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
+                            99.995<span class="text-xl text-neonEmerald">%</span>
+                        </div>
+                        <div class="mt-2 text-xs text-slate-400 flex items-center gap-1.5">
+                            Max. <span class="text-white font-mono">26.3 perc</span> kiesés / teljes év
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl p-5 text-left border-l-4 border-l-neonBlue">
+                        <div class="flex items-center justify-between text-xs font-mono text-slate-400 uppercase mb-2">
+                            <span>AI GPU Rack Sűrűség</span>
+                            <i class="fa-solid fa-fire-flame-curved text-neonBlue"></i>
+                        </div>
+                        <div class="font-mono text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
+                            120 <span class="text-xs font-normal text-neonBlue">kW / Rack</span>
+                        </div>
+                        <div class="mt-2 text-xs text-slate-400 flex items-center gap-1.5">
+                            Direct-to-Chip folyadékhűtési kényszer
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl p-5 text-left border-l-4 border-l-purple-500">
+                        <div class="flex items-center justify-between text-xs font-mono text-slate-400 uppercase mb-2">
+                            <span>AI Hűtésoptimalizáció</span>
+                            <i class="fa-solid fa-brain text-purple-400"></i>
+                        </div>
+                        <div class="font-mono text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
+                            -38.5<span class="text-xl text-purple-400">%</span>
+                        </div>
+                        <div class="mt-2 text-xs text-slate-400 flex items-center gap-1.5">
+                            Hűtési energia-megtakarítás (RL modellek)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- FŐ TARTALMI KONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 lg:px-8 py-16 space-y-28">
+
+        <!-- =========================================================================
+             1. SZEKCIÓ: ÁRAMFOGYASZTÁS, HŰTÉS ÉS INTERAKTÍV PUE KALKULÁTOR
+             ========================================================================= -->
+        <section id="energetika" class="scroll-mt-24">
+            <!-- Szekció Fejléc -->
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-10 border-b border-slate-800 pb-6">
+                <div>
+                    <div class="font-mono text-xs uppercase tracking-widest text-neonCyan mb-2 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-neonCyan"></span> SZEKCIÓ 01 // ENERGETIKA ÉS TERMODINAMIKA
+                    </div>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                        Áramfogyasztás és Hűtési Architektúrák
+                    </h2>
+                </div>
+                <div class="mt-4 md:mt-0 font-mono text-xs text-slate-400 bg-slate-900/90 px-3.5 py-2 rounded-lg border border-slate-800">
+                    KÉP AZONOSÍTÓ: <span class="text-neonCyan" id="badgeImg1">kep1.jpg (Energetika)</span>
+                </div>
+            </div>
+
+            <!-- Kép + Szakmai Elemzés Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10 items-stretch">
+                <!-- 1. KÉP KÁRTYA -->
+                <div class="lg:col-span-5 glass-panel rounded-2xl overflow-hidden flex flex-col justify-between relative group">
+                    <div class="relative h-72 sm:h-80 lg:h-full min-h-[320px] overflow-hidden scan-overlay">
+                        <img id="dcImage1" 
+                             src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=85" 
+                             onerror="this.src='https://placehold.co/800x600/0f172a/06b6d4?text=1.+Kep+-+Szerverterem+Es+Hutes'"
+                             alt="Adatközponti szerversorok és nagy sűrűségű hűtési folyosó" 
+                             class="w-full h-full object-cover object-center group-hover:scale-105 transition duration-700">
+                        <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/30 to-transparent"></div>
+                        
+                        <!-- HUD Overlay a képen -->
+                        <div class="absolute top-3 left-3 bg-obsidian/80 backdrop-blur-md border border-cyan-500/30 px-2.5 py-1 rounded text-[11px] font-mono text-cyan-300 flex items-center gap-2">
+                            <i class="fa-solid fa-temperature-arrow-down"></i> HIDEGFOLYOSÓ: 18.4 °C
+                        </div>
+                        <div class="absolute bottom-4 left-4 right-4">
+                            <span class="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-500/20 text-neonCyan border border-cyan-500/30">
+                                1. Illusztráció
+                            </span>
+                            <h3 class="text-lg font-bold text-white mt-1">Nagy Sűrűségű Szerverfolyosó & Hőelvezetés</h3>
+                            <p class="text-xs text-slate-300">Zárt hideg- és melegfolyosós (Containment) elrendezés az optimális légáramlásért.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SZAKMAI LEÍRÁS -->
+                <div class="lg:col-span-7 glass-panel rounded-2xl p-6 sm:p-8 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-xl sm:text-2xl font-bold text-white mb-4 flex items-center gap-2.5">
+                            <i class="fa-solid fa-plug-circle-bolt text-neonCyan"></i>
+                            Miért kritikus az adatközpontok energiaéhsége?
+                        </h3>
+                        <p class="text-slate-300 text-sm sm:text-base leading-relaxed mb-6">
+                            A globális adatközpontok a világ teljes villamosenergia-termelésének már közel <strong>2–3%-át</strong> használják fel, és ez az arány a felhőszolgáltatások, valamint a generatív AI miatt meredeken emelkedik. A szerverek által felvett elektromos teljesítmény gyakorlatilag 100%-ban hővé alakul, amelyet folyamatosan el kell vezetni a chipek túlmelegedésének (Thermal Throttling) elkerülése érdekében.
+                        </p>
+
+                        <!-- 3 Technikai Alpont -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+                                <div class="text-neonCyan font-mono text-xs font-bold uppercase mb-1">01. PUE Mutató</div>
+                                <div class="text-white font-semibold text-sm mb-1">Power Usage Effectiveness</div>
+                                <p class="text-xs text-slate-400 leading-relaxed">
+                                    A létesítmény összfogyasztásának és az IT-eszközök fogyasztásának hányadosa. Az <code class="text-cyan-300">1.0</code> a fizikai optimum.
+                                </p>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+                                <div class="text-neonCyan font-mono text-xs font-bold uppercase mb-1">02. Folyadékhűtés</div>
+                                <div class="text-white font-semibold text-sm mb-1">DLC & Immerziós Hűtés</div>
+                                <p class="text-xs text-slate-400 leading-relaxed">
+                                    A víz hővezető képessége ~3000-szer jobb a levegőénél. 40 kW/rack felett a közvetlen chiphűtés (Direct Liquid Cooling) elengedhetetlen.
+                                </p>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+                                <div class="text-neonCyan font-mono text-xs font-bold uppercase mb-1">03. Zöld PPA & SMR</div>
+                                <div class="text-white font-semibold text-sm mb-1">Karbonsemleges Bázis</div>
+                                <p class="text-xs text-slate-400 leading-relaxed">
+                                    Hosszú távú zöldáram-szerződések (PPA), hulladékhő-visszanyerés távfűtéshez és moduláris reaktorok (SMR) integrációja.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Képlet sáv -->
+                    <div class="bg-obsidian/90 border border-cyan-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-cyan-500/10 flex items-center justify-center text-neonCyan font-mono font-bold">∑</div>
+                            <div>
+                                <div class="text-xs font-mono text-slate-400 uppercase">Nemzetközi PUE Szabvány Képlet</div>
+                                <div class="text-sm font-mono text-white font-semibold">PUE = Teljes Létesítmény Teljesítmény (MW) ÷ IT Hardver Teljesítmény (MW)</div>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shrink-0">
+                            ISO/IEC 30134-2
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INTERAKTÍV MODUL 1: PUE ÉS ENERGETIKAI SZIMULÁTOR -->
+            <div class="glass-panel rounded-2xl p-6 sm:p-8 border border-cyan-500/30">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-6 mb-6 border-b border-slate-800">
+                    <div>
+                        <span class="text-xs font-mono uppercase text-neonCyan tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-Sliders"></i> INTERAKTÍV TELEMETRIA MODUL #01
+                        </span>
+                        <h3 class="text-xl font-bold text-white mt-0.5">Adatközponti Energiafogyasztás és PUE Kalkulátor</h3>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setPuePreset(10, 1.55, 'techAir')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-300 border border-slate-700 transition">
+                            Hagyományos (PUE 1.55)
+                        </button>
+                        <button onclick="setPuePreset(45, 1.18, 'techDlc')" class="px-3 py-1.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 text-xs font-mono text-neonCyan border border-cyan-500/40 transition">
+                            Modern Folyadékhűtés (PUE 1.18)
+                        </button>
+                        <button onclick="setPuePreset(100, 1.07, 'techImmersion')" class="px-3 py-1.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-xs font-mono text-emerald-300 border border-emerald-500/40 transition">
+                            AI Hiperskálázott (PUE 1.07)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    <!-- Csúszkák -->
+                    <div class="lg:col-span-6 space-y-6">
+                        <!-- Slider 1: IT Terhelés -->
+                        <div class="bg-slate-900/70 p-4 rounded-xl border border-slate-800">
+                            <div class="flex justify-between items-center mb-2">
+                                <label for="itLoadSlider" class="text-xs font-mono uppercase text-slate-300 font-semibold">
+                                    1. Hasznos IT Szerver Terhelés (MW):
+                                </label>
+                                <span id="itLoadVal" class="font-mono text-lg font-bold text-neonCyan">45 MW</span>
+                            </div>
+                            <input id="itLoadSlider" type="range" min="5" max="150" step="1" value="45" oninput="calculateEnergy()">
+                            <div class="flex justify-between text-[11px] font-mono text-slate-500 mt-1">
+                                <span>5 MW (Regionális DC)</span>
+                                <span>75 MW (Vállalati)</span>
+                                <span>150 MW (Hyperscale Campus)</span>
+                            </div>
+                        </div>
+
+                        <!-- Slider 2: PUE érték -->
+                        <div class="bg-slate-900/70 p-4 rounded-xl border border-slate-800">
+                            <div class="flex justify-between items-center mb-2">
+                                <label for="pueSlider" class="text-xs font-mono uppercase text-slate-300 font-semibold">
+                                    2. Hűtési Hatékonyság (PUE Érték):
+                                </label>
+                                <span id="pueVal" class="font-mono text-lg font-bold text-emerald-400">1.18</span>
+                            </div>
+                            <input id="pueSlider" type="range" min="1.05" max="2.00" step="0.01" value="1.18" oninput="calculateEnergy()">
+                            <div class="flex justify-between text-[11px] font-mono text-slate-500 mt-1">
+                                <span>1.05 (Immerziós / Zöld)</span>
+                                <span>1.45 (Átlagos Légkondicionált)</span>
+                                <span>2.00 (Elavult)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kalkulált Kimenetek -->
+                    <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-obsidian/80 border border-slate-800 p-4 rounded-xl">
+                            <div class="text-xs font-mono text-slate-400 uppercase">Teljes Erőművi Igény</div>
+                            <div id="totalFacilityPower" class="font-mono text-2xl sm:text-3xl font-extrabold text-white mt-1">53.10 MW</div>
+                            <div class="text-xs text-slate-400 mt-1">IT + Hűtés + UPS veszteség</div>
+                        </div>
+
+                        <div class="bg-obsidian/80 border border-slate-800 p-4 rounded-xl">
+                            <div class="text-xs font-mono text-slate-400 uppercase">Hűtési & Segédenergia</div>
+                            <div id="coolingOverheadPower" class="font-mono text-2xl sm:text-3xl font-extrabold text-neonAmber mt-1">8.10 MW</div>
+                            <div class="text-xs text-slate-400 mt-1">Nem számításra fordított energia</div>
+                        </div>
+
+                        <div class="bg-obsidian/80 border border-slate-800 p-4 rounded-xl">
+                            <div class="text-xs font-mono text-slate-400 uppercase">Éves Energiafogyasztás</div>
+                            <div id="annualGwh" class="font-mono text-2xl font-bold text-neonCyan mt-1">465.16 GWh/év</div>
+                            <div id="householdEq" class="text-xs text-slate-400 mt-1">~129,210 háztartás éves igénye</div>
+                        </div>
+
+                        <div class="bg-obsidian/80 border border-slate-800 p-4 rounded-xl">
+                            <div class="text-xs font-mono text-slate-400 uppercase">Hatékonysági Besorolás</div>
+                            <div id="efficiencyBadge" class="font-mono text-lg font-bold text-emerald-400 mt-1">KIVÁLÓ (FOLYADÉKHŰTÉS)</div>
+                            <div class="w-full bg-slate-800 h-2 rounded-full mt-2 overflow-hidden">
+                                <div id="pueProgressBar" class="bg-gradient-to-r from-emerald-400 to-cyan-400 h-full transition-all duration-300" style="width: 82%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================================
+             2. SZEKCIÓ: REDUNDANCIA, ÜZEMBIZTONSÁG ÉS 2N+1 ÁRAMSZÜNET SZIMULÁTOR
+             ========================================================================= -->
+        <section id="redundancia" class="scroll-mt-24">
+            <!-- Szekció Fejléc -->
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-10 border-b border-slate-800 pb-6">
+                <div>
+                    <div class="font-mono text-xs uppercase tracking-widest text-neonEmerald mb-2 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-neonEmerald"></span> SZEKCIÓ 02 // HIBATŰRÉS ÉS FOLYTONOSSÁG
+                    </div>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                        Redundancia és Üzembiztonság (Tier IV)
+                    </h2>
+                </div>
+                <div class="mt-4 md:mt-0 font-mono text-xs text-slate-400 bg-slate-900/90 px-3.5 py-2 rounded-lg border border-slate-800">
+                    KÉP AZONOSÍTÓ: <span class="text-neonEmerald" id="badgeImg2">kep2.jpg (Redundancia)</span>
+                </div>
+            </div>
+
+            <!-- Szakmai Leírás + 2. Kép Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10 items-stretch">
+                <!-- SZAKMAI LEÍRÁS -->
+                <div class="lg:col-span-7 glass-panel rounded-2xl p-6 sm:p-8 flex flex-col justify-between order-2 lg:order-1">
+                    <div>
+                        <h3 class="text-xl sm:text-2xl font-bold text-white mb-4 flex items-center gap-2.5">
+                            <i class="fa-solid fa-network-wired text-neonEmerald"></i>
+                            A "Zéró Egyedi Hibapont" (No Single Point of Failure) Elve
+                        </h3>
+                        <p class="text-slate-300 text-sm sm:text-base leading-relaxed mb-6">
+                            Banki tranzakciók, légiirányítás, felhőalapú egészségügyi rendszerek: egy adatközpont nem állhat le azért, mert egy transzformátor felrobban vagy egy markoló elvág egy optikai gerinckábelt. A <strong>redundancia</strong> biztosítja, hogy minden kritikus gépészeti (hűtés), energetikai (UPS, generátor) és hálózati elemből tartalék útvonalak álljanak rendelkezésre.
+                        </p>
+
+                        <div class="space-y-3 mb-6">
+                            <div class="flex items-start gap-3.5 bg-slate-900/75 p-3.5 rounded-xl border border-slate-800">
+                                <span class="font-mono text-xs font-bold px-2.5 py-1 rounded bg-emerald-500/20 text-neonEmerald border border-emerald-500/30 shrink-0 mt-0.5">N+1</span>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white">Alapszintű Tartalékolás (Aktív + 1 Tartalék)</h4>
+                                    <p class="text-xs text-slate-400 mt-0.5">Ha a rendszernek 4 db UPS-re van szüksége a teljes terheléshez (N), akkor 5 darabot építenek be (N+1). Egyetlen modul kiesésekor a tartalék átveszi a szerepet.</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-3.5 bg-slate-900/75 p-3.5 rounded-xl border border-slate-800">
+                                <span class="font-mono text-xs font-bold px-2.5 py-1 rounded bg-cyan-500/20 text-neonCyan border border-cyan-500/30 shrink-0 mt-0.5">2N</span>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white">Teljesen Tükrözött Áramkörök (A és B Ág)</h4>
+                                    <p class="text-xs text-slate-400 mt-0.5">Két fizikailag teljesen szeparált áramellátó rendszer (A és B). Minden szerver két tápegységgel (Dual PSU) rendelkezik. Egy teljes áramkör leállása sem okoz fennakadást.</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-3.5 bg-slate-900/75 p-3.5 rounded-xl border border-emerald-500/40">
+                                <span class="font-mono text-xs font-bold px-2.5 py-1 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 shrink-0 mt-0.5">2N+1</span>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white">Maximális Hibatűrés (Duplikált Rendszer + Extra Tartalék)</h4>
+                                    <p class="text-xs text-slate-400 mt-0.5">Még akkor is garantálja a 100%-os üzemet, ha az egyik teljes ágon tervszerű karbantartást végeznek, miközben a másik ágon váratlan hardverhiba lép fel.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-4 border-t border-slate-800 text-xs font-mono text-slate-400">
+                        <span><i class="fa-solid fa-battery-full text-neonEmerald mr-1"></i> UPS Áthidalás: 10–15 perc</span>
+                        <span><i class="fa-solid fa-gas-pump text-neonAmber mr-1"></i> Dízel Generátor Indulás: &lt; 10 mp</span>
+                        <span><i class="fa-solid fa-truck-droplet text-neonCyan mr-1"></i> Üzemanyagtartály: 72+ óra</span>
+                    </div>
+                </div>
+
+                <!-- 2. KÉP KÁRTYA -->
+                <div class="lg:col-span-5 glass-panel rounded-2xl overflow-hidden flex flex-col justify-between relative group order-1 lg:order-2">
+                    <div class="relative h-72 sm:h-80 lg:h-full min-h-[320px] overflow-hidden scan-overlay">
+                        <img id="dcImage2" 
+                             src="https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=1200&q=85" 
+                             onerror="this.src='https://placehold.co/800x600/0f172a/10b981?text=2.+Kep+-+Redundans+Halozat'"
+                             alt="Redundáns optikai és elektromos hálózati kábelezés" 
+                             class="w-full h-full object-cover object-center group-hover:scale-105 transition duration-700">
+                        <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/30 to-transparent"></div>
+                        
+                        <div class="absolute top-3 right-3 bg-obsidian/80 backdrop-blur-md border border-emerald-500/30 px-2.5 py-1 rounded text-[11px] font-mono text-emerald-300 flex items-center gap-2">
+                            <i class="fa-solid fa-code-branch"></i> DUAL-FEED A/B AKTÍV
+                        </div>
+                        <div class="absolute bottom-4 left-4 right-4">
+                            <span class="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-neonEmerald border border-emerald-500/30">
+                                2. Illusztráció
+                            </span>
+                            <h3 class="text-lg font-bold text-white mt-1">Többszörözött Hálózati és Tápellátási Útvonalak</h3>
+                            <p class="text-xs text-slate-300">Redundáns optikai gerinchálózat (BGP multi-homing) és kettős A/B tápbetáplálás.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INTERAKTÍV MODUL 2: REDUNDANCIA ÉS HIBATŰRÉS SZIMULÁTOR -->
+            <div class="glass-panel rounded-2xl p-6 sm:p-8 border border-emerald-500/30">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-800">
+                    <div>
+                        <span class="text-xs font-mono uppercase text-neonEmerald tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-diagram-project"></i> INTERAKTÍV TELEMETRIA MODUL #02
+                        </span>
+                        <h3 class="text-xl font-bold text-white mt-0.5">Redundancia Architektúra & Áramszünet Szimulátor</h3>
+                    </div>
+
+                    <!-- Topológia Választó Gombok -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="setRedundancyArch('N')" id="archBtnN" class="px-3.5 py-2 rounded-lg font-mono text-xs font-bold border transition bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500">
+                            N (Alap)
+                        </button>
+                        <button onclick="setRedundancyArch('N+1')" id="archBtnN1" class="px-3.5 py-2 rounded-lg font-mono text-xs font-bold border transition bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500">
+                            N+1 (Tier II/III)
+                        </button>
+                        <button onclick="setRedundancyArch('2N')" id="archBtn2N" class="px-3.5 py-2 rounded-lg font-mono text-xs font-bold border transition bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500">
+                            2N (Tier IV)
+                        </button>
+                        <button onclick="setRedundancyArch('2N+1')" id="archBtn2N1" class="px-3.5 py-2 rounded-lg font-mono text-xs font-bold border transition bg-emerald-500/20 text-neonEmerald border-neonEmerald shadow-[0_0_15px_rgba(16,185,129,0.25)]">
+                            2N+1 (Missziókritikus)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Vizuális Kapcsolási Rajz / Állapotjelzők -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <!-- Bal oldal: Interaktív Kapcsolótábla -->
+                    <div class="lg:col-span-8 bg-obsidian/90 border border-slate-800 rounded-xl p-5">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                            <span class="font-mono text-xs uppercase text-slate-400">
+                                Aktív Topológia: <strong id="currentArchLabel" class="text-neonEmerald">2N+1 Teljes Hibatűrő</strong>
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="triggerGridFailure()" id="btnSimulateFail" class="px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 font-mono text-xs font-bold transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> ÁRAMSZÜNET SZIMULÁLÁSA ('A' ÁG)
+                                </button>
+                                <button onclick="resetGridSimulation()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-mono text-xs transition">
+                                    <i class="fa-solid fa-rotate-right"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Architektúra Vizuális Rács -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-4">
+                            <!-- 'A' ENERGETIKAI ÁG -->
+                            <div id="feedACard" class="p-4 rounded-xl border border-emerald-500/40 bg-emerald-950/15 transition-all">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-mono text-xs font-bold text-emerald-400" id="feedATitle">BETÁP 'A' ÁG (PRIMER)</span>
+                                    <span id="feedAStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]"></span>
+                                </div>
+                                <div class="space-y-2 text-xs font-mono">
+                                    <div class="flex justify-between p-1.5 rounded bg-slate-900/90">
+                                        <span class="text-slate-400">Közmű + Dízel A:</span>
+                                        <span id="genAStatus" class="text-emerald-400">ONLINE (400V)</span>
+                                    </div>
+                                    <div class="flex justify-between p-1.5 rounded bg-slate-900/90">
+                                        <span class="text-slate-400">UPS Bank A:</span>
+                                        <span id="upsAStatus" class="text-emerald-400">AKTÍV (98%)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- '+1' TARTALÉK / BYPASS MODUL -->
+                            <div id="feedPlusCard" class="p-4 rounded-xl border border-cyan-500/40 bg-cyan-950/15 transition-all">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-mono text-xs font-bold text-neonCyan">TARTALÉK (+1) MODUL</span>
+                                    <span id="feedPlusDot" class="w-2.5 h-2.5 rounded-full bg-neonCyan shadow-[0_0_8px_#06b6d4]"></span>
+                                </div>
+                                <div class="space-y-2 text-xs font-mono">
+                                    <div class="flex justify-between p-1.5 rounded bg-slate-900/90">
+                                        <span class="text-slate-400">Szerep:</span>
+                                        <span id="plusRoleStatus" class="text-cyan-300">HOT-STANDBY</span>
+                                    </div>
+                                    <div class="flex justify-between p-1.5 rounded bg-slate-900/90">
+                                        <span class="text-slate-400">Átkapcsolási idő:</span>
+                                        <span id="plusSwitchTime" class="text-cyan-300">0 ms (Statikus)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 'B' ENERGETIKAI ÁG -->
+                            <div id="feedBCard" class="p-4 rounded-xl border border-emerald-500/40 bg-emerald-950/15 transition-all">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-mono text-xs font-bold text-emerald-400" id="feedBTitle">BETÁP 'B' ÁG (TÜKRÖZÖTT)</span>
+                                    <span id="feedBStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]"></span>
+                                </div>
+                                <div class="space-y-2 text-xs font-mono">
+                                    <div class="flex justify-between p-1.5 rounded bg-slate-900/90">
+                                        <span class="text-slate-400">Közmű + Dízel B:</span>
+                                        <span id="genBStatus" class="text-emerald-400">ONLINE (400V)</span>
+                                    </div>
+                                    <div class="flex justify-between p-1.5 rounded bg-slate-900/90">
+                                        <span class="text-slate-400">UPS Bank B:</span>
+                                        <span id="upsBStatus" class="text-emerald-400">AKTÍV (98%)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Szerver Rack Terhelés Visszajelző -->
+                        <div id="serverRackStatusBox" class="mt-4 p-4 rounded-xl border border-emerald-500/40 bg-slate-900/90 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div id="rackIconBox" class="w-10 h-10 rounded-lg bg-emerald-500/20 text-neonEmerald flex items-center justify-center text-lg">
+                                    <i class="fa-solid fa-server"></i>
+                                </div>
+                                <div>
+                                    <div id="rackStatusTitle" class="font-mono text-sm font-bold text-white">KRITIKUS SZERVERFÜRTÖK: 100% ONLINE (ZÉRÓ KIESÉS)</div>
+                                    <div id="rackStatusDesc" class="text-xs text-slate-400">A Dual-PSU szerverek párhuzamosan kapnak áramot.</div>
+                                </div>
+                            </div>
+                            <span id="slaBadge" class="font-mono text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                                SLA: 99.995%
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Jobb oldal: Mérnöki Kiértékelés -->
+                    <div class="lg:col-span-4 space-y-4">
+                        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5">
+                            <div class="text-xs font-mono uppercase text-neonEmerald mb-1">Architektúra Elemzés</div>
+                            <h4 id="archAnalysisTitle" class="text-base font-bold text-white mb-2">2N+1 Maximális Védelem</h4>
+                            <p id="archAnalysisText" class="text-xs text-slate-300 leading-relaxed">
+                                Két teljesen független betáplálási útvonal (A és B), kiegészítve egy extra tartalék modullal (+1). Ha az 'A' ág teljesen megsemmisül vagy karbantartás alatt áll, a 'B' ág és a '+1' modul megszakítás nélkül viszi a 100%-os szerverterhelést.
+                            </p>
+                        </div>
+
+                        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 space-y-2.5 font-mono text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Párhuzamos Karbantarthatóság:</span>
+                                <span id="metricConcurrent" class="text-emerald-400 font-bold">IGEN (100%)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Hibatűrés (Fault Tolerance):</span>
+                                <span id="metricFaultTol" class="text-emerald-400 font-bold">AUTOMATIKUS</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Éves Maximális Állásidő:</span>
+                                <span id="metricDowntime" class="text-white font-bold">0.4 óra (26 perc)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================================
+             3. SZEKCIÓ: A MESTERSÉGES INTELLIGENCIA SZEREPE & HŐTÉRKÉP MONITOR
+             ========================================================================= -->
+        <section id="ai-szerepe" class="scroll-mt-24">
+            <!-- Szekció Fejléc -->
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-10 border-b border-slate-800 pb-6">
+                <div>
+                    <div class="font-mono text-xs uppercase tracking-widest text-neonBlue mb-2 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-neonBlue"></span> SZEKCIÓ 03 // NEURÁLIS INFRASTRUKTÚRA ÉS AUTONÓM VEZÉRLÉS
+                    </div>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                        A Mesterséges Intelligencia Kettős Szerepe
+                    </h2>
+                </div>
+                <div class="mt-4 md:mt-0 font-mono text-xs text-slate-400 bg-slate-900/90 px-3.5 py-2 rounded-lg border border-slate-800">
+                    KÉP AZONOSÍTÓ: <span class="text-neonBlue" id="badgeImg3">kep3.jpg (AI & Vezérlés)</span>
+                </div>
+            </div>
+
+            <!-- 3. Kép + Szakmai Elemzés Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10 items-stretch">
+                <!-- 3. KÉP KÁRTYA -->
+                <div class="lg:col-span-5 glass-panel rounded-2xl overflow-hidden flex flex-col justify-between relative group">
+                    <div class="relative h-72 sm:h-80 lg:h-full min-h-[320px] overflow-hidden scan-overlay">
+                        <img id="dcImage3" 
+                             src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=85" 
+                             onerror="this.src='https://placehold.co/800x600/0f172a/3b82f6?text=3.+Kep+-+AI+Es+Hardver'"
+                             alt="Mesterséges intelligencia mikrochip és nagy sűrűségű számítási architektúra" 
+                             class="w-full h-full object-cover object-center group-hover:scale-105 transition duration-700">
+                        <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/30 to-transparent"></div>
+                        
+                        <div class="absolute top-3 left-3 bg-obsidian/80 backdrop-blur-md border border-blue-500/30 px-2.5 py-1 rounded text-[11px] font-mono text-blue-300 flex items-center gap-2">
+                            <i class="fa-solid fa-microchip"></i> AI TELEMETRIA: AKTÍV
+                        </div>
+                        <div class="absolute bottom-4 left-4 right-4">
+                            <span class="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/20 text-neonBlue border border-blue-500/30">
+                                3. Illusztráció
+                            </span>
+                            <h3 class="text-lg font-bold text-white mt-1">AI Gyorsító Klaszterek és Prediktív Felügyelet</h3>
+                            <p class="text-xs text-slate-300">Nagy sűrűségű GPU/TPU csomópontok és valós idejű szenzorhálózati analitika.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SZAKMAI LEÍRÁS -->
+                <div class="lg:col-span-7 glass-panel rounded-2xl p-6 sm:p-8 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-xl sm:text-2xl font-bold text-white mb-4 flex items-center gap-2.5">
+                            <i class="fa-solid fa-brain text-neonBlue"></i>
+                            1. Az AI mint extrém fogyasztó — 2. Az AI mint optimalizáló
+                        </h3>
+                        <p class="text-slate-300 text-sm sm:text-base leading-relaxed mb-6">
+                            A nagy nyelvi modellek (LLM) és neurális hálózatok tanítása alapjaiban rajzolta át az adatközpontok fizikáját. Míg egy hagyományos felhőszerver-szekrény (rack) <strong>5–10 kW</strong> áramot igényel, egy modern AI GPU-rack (pl. NVIDIA Blackwell architektúra) <strong>60–120 kW</strong> teljesítményt vesz fel. Ugyanakkor maga a mesterséges intelligencia kínálja a megoldást a létesítmények energiahatékony vezérlésére is.
+                        </p>
+
+                        <!-- Kétoszlopos összehasonlítás -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                            <div class="bg-slate-900/80 border border-blue-500/30 rounded-xl p-4">
+                                <div class="text-neonBlue font-mono text-xs font-bold uppercase mb-1 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-snowflake"></i> Autonóm Hűtésvezérlés
+                                </div>
+                                <h4 class="text-white font-semibold text-sm mb-1.5">Megerősítéses Tanulás (DeepMind / DCIM)</h4>
+                                <p class="text-xs text-slate-400 leading-relaxed">
+                                    Az AI másodpercenként több ezer hőmérsékleti, nyomás- és légáramlási szenzor adatát elemzi, és előre szabályozza a szivattyúkat és folyadékhűtőket, akár <strong>30–40%-kal csökkentve</strong> a hűtési áramfogyasztást.
+                                </p>
+                            </div>
+
+                            <div class="bg-slate-900/80 border border-purple-500/30 rounded-xl p-4">
+                                <div class="text-purple-400 font-mono text-xs font-bold uppercase mb-1 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-wave-square"></i> Prediktív Karbantartás (AIOps)
+                                </div>
+                                <h4 class="text-white font-semibold text-sm mb-1.5">Meghibásodások Előrejelzése</h4>
+                                <p class="text-xs text-slate-400 leading-relaxed">
+                                    Akusztikai, vibrációs és mikro-feszültségingadozási mintázatok alapján az AI napokkal a tényleges fizikai meghibásodás előtt jelzi a ventilátorok, tápegységek vagy akkumulátorcellák hibáját.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dinamikus Terhelés-ütemezés infobox -->
+                    <div class="bg-obsidian/90 border border-blue-500/30 rounded-xl p-4 flex items-center justify-between gap-4">
+                        <div class="text-xs text-slate-300 leading-relaxed">
+                            <strong class="text-neonBlue font-mono uppercase">Carbon-Aware Workload Shifting:</strong> Az AI ütemező algoritmusok a nem sürgős modelltanítási feladatokat automatikusan azokba az órákba vagy földrajzi régiókba irányítják át, ahol éppen többlet van nap- és szélenergiából.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INTERAKTÍV MODUL 3: AI HŐTÉRKÉP ÉS HŰTÉSOPTIMALIZÁCIÓS MONITOR -->
+            <div class="glass-panel rounded-2xl p-6 sm:p-8 border border-blue-500/30">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-800">
+                    <div>
+                        <span class="text-xs font-mono uppercase text-neonBlue tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-eye"></i> INTERAKTÍV TELEMETRIA MODUL #03
+                        </span>
+                        <h3 class="text-xl font-bold text-white mt-0.5">Élő Szervertermi Hőtérkép (Thermal Map) & AI Optimalizáló</h3>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <button id="aiToggleBtn" onclick="toggleAiCooling()" class="px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition bg-gradient-to-r from-cyan-500 to-blue-600 text-obsidian shadow-[0_0_20px_rgba(6,182,212,0.4)] flex items-center gap-2">
+                            <i class="fa-solid fa-robot"></i> <span id="aiBtnText">AI AUTONÓM HŰTÉS: BEKAPCSOLVA</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    <!-- Bal oldal: 24 Szerver Rack Hőtérkép Mátrix -->
+                    <div class="lg:col-span-7 bg-obsidian/90 border border-slate-800 rounded-xl p-5">
+                        <div class="flex items-center justify-between text-xs font-mono text-slate-400 mb-3">
+                            <span>GPU KLASZTER ZÓNA #04 (24 RACK TELEMETRIA)</span>
+                            <span id="thermalModeLabel" class="text-neonCyan font-bold">MÓD: NEURÁLIS FOLYADÉKHŰTÉS</span>
+                        </div>
+
+                        <!-- Dinamikus Rack Hőmátrix -->
+                        <div id="rackGrid" class="grid grid-cols-4 sm:grid-cols-6 gap-2.5 my-2">
+                            <!-- JS tölti fel a 24 interaktív rack cellát -->
+                        </div>
+
+                        <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 mt-4 pt-3 border-t border-slate-800/80">
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-cyan-500 inline-block"></span> Optimális (22–28°C)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block"></span> Normál (29–35°C)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-amber-500 inline-block"></span> Magas (36–44°C)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-red-500 inline-block"></span> Hotspot (&gt;45°C)</span>
+                        </div>
+                    </div>
+
+                    <!-- Jobb oldal: AI Telemetria Mérőórák -->
+                    <div class="lg:col-span-5 space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
+                                <div class="text-xs font-mono text-slate-400 uppercase">Átlagos Rack Hőfok</div>
+                                <div id="aiAvgTemp" class="font-mono text-2xl sm:text-3xl font-extrabold text-neonCyan mt-1">26.4 °C</div>
+                                <div id="aiHotspotCount" class="text-xs text-emerald-400 font-mono mt-1">0 db lokális túlmelegedés</div>
+                            </div>
+
+                            <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
+                                <div class="text-xs font-mono text-slate-400 uppercase">Pillanatnyi PUE</div>
+                                <div id="aiLivePue" class="font-mono text-2xl sm:text-3xl font-extrabold text-neonEmerald mt-1">1.09</div>
+                                <div id="aiCoolingSave" class="text-xs text-cyan-300 font-mono mt-1">-36% hűtési energia</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
+                            <div class="flex justify-between text-xs font-mono mb-2">
+                                <span class="text-slate-400 uppercase">AI Prediktív Szelepvezérlés Napló:</span>
+                                <span class="text-neonCyan animate-pulse">● ÉLŐ</span>
+                            </div>
+                            <div id="aiLogConsole" class="font-mono text-[11px] text-slate-300 space-y-1.5 bg-obsidian p-3 rounded-lg border border-slate-800 h-28 overflow-y-auto">
+                                <!-- JS frissíti az élő logokat -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================================
+             4. SZEKCIÓ: UPTIME INSTITUTE TIER I - IV SZABVÁNY ÖSSZEHASONLÍTÓ MÁTRIX
+             ========================================================================= -->
+        <section id="tier-matrix" class="scroll-mt-24">
+            <div class="mb-8">
+                <div class="font-mono text-xs uppercase tracking-widest text-purple-400 mb-2 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-purple-400"></span> SZEKCIÓ 04 // NEMZETKÖZI MINŐSÍTÉSI RENDSZER
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                    Uptime Institute Tier I – Tier IV Szabvány Mátrix
+                </h2>
+            </div>
+
+            <div class="glass-panel rounded-2xl overflow-hidden border border-slate-800">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900/95 border-b border-slate-800 font-mono text-xs uppercase text-slate-400">
+                                <th class="py-4 px-5">Paraméter / Minősítés</th>
+                                <th class="py-4 px-5">Tier I (Alap)</th>
+                                <th class="py-4 px-5">Tier II (Redundáns)</th>
+                                <th class="py-4 px-5 text-neonCyan">Tier III (Karbantartható)</th>
+                                <th class="py-4 px-5 text-neonEmerald bg-emerald-950/20">Tier IV (Hibatűrő)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/80 text-sm">
+                            <tr class="hover:bg-slate-900/40 transition">
+                                <td class="py-4 px-5 font-semibold text-white">Garantált Üzemidő (SLA)</td>
+                                <td class="py-4 px-5 font-mono text-slate-400">99.671%</td>
+                                <td class="py-4 px-5 font-mono text-slate-300">99.741%</td>
+                                <td class="py-4 px-5 font-mono text-neonCyan font-semibold">99.982%</td>
+                                <td class="py-4 px-5 font-mono text-neonEmerald font-bold bg-emerald-950/10">99.995%</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900/40 transition">
+                                <td class="py-4 px-5 font-semibold text-white">Redundancia Topológia</td>
+                                <td class="py-4 px-5 font-mono text-slate-400">N (Nincs tartalék)</td>
+                                <td class="py-4 px-5 font-mono text-slate-300">N+1 modulok</td>
+                                <td class="py-4 px-5 font-mono text-neonCyan">N+1 (Kettős betáp, 1 aktív)</td>
+                                <td class="py-4 px-5 font-mono text-neonEmerald font-bold bg-emerald-950/10">2N vagy 2N+1 (Aktív/Aktív)</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900/40 transition">
+                                <td class="py-4 px-5 font-semibold text-white">Éves Maximális Kiesés</td>
+                                <td class="py-4 px-5 font-mono text-red-400">28.8 óra / év</td>
+                                <td class="py-4 px-5 font-mono text-amber-400">22.0 óra / év</td>
+                                <td class="py-4 px-5 font-mono text-neonCyan">1.6 óra / év</td>
+                                <td class="py-4 px-5 font-mono text-neonEmerald font-bold bg-emerald-950/10">26.3 perc / év</td>
+                            </tr>
+                            <tr class="hover:bg-slate-900/40 transition">
+                                <td class="py-4 px-5 font-semibold text-white">Leállás nélküli karbantartás</td>
+                                <td class="py-4 px-5 text-slate-500">Nem lehetséges</td>
+                                <td class="py-4 px-5 text-slate-400">Részleges</td>
+                                <td class="py-4 px-5 text-neonCyan font-medium">Igen (Concurrently Maintainable)</td>
+                                <td class="py-4 px-5 text-neonEmerald font-semibold bg-emerald-950/10">Igen + Teljesen Hibatűrő</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- LÁBLÉC (FOOTER) -->
+    <footer class="border-t border-slate-800/90 bg-obsidian py-12 px-4 lg:px-8 mt-20">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-neonCyan">
+                    <i class="fa-solid fa-server text-sm"></i>
+                </div>
+                <div>
+                    <div class="font-mono text-sm font-bold text-white">DC-CORE // ADATKÖZPONTI INFRASTRUKTÚRA</div>
+                    <div class="text-xs text-slate-500">Áramfogyasztás • Redundancia • Mesterséges Intelligencia</div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-4 text-xs font-mono text-slate-400">
+                <button onclick="toggleImageSourceModal()" class="hover:text-neonCyan transition underline underline-offset-4">
+                    Képforrás váltása (kep1.jpg / Cloud)
+                </button>
+                <span>|</span>
+                <span class="text-emerald-400">GitHub Pages Ready (index.html)</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- INTERAKTÍV TELEMETRIA ÉS SZIMULÁCIÓS JAVASCRIPT MOTOR -->
+    <script>
+        /* =========================================================================
+           1. MODUL: PUE ÉS ENERGETIKAI KALKULÁTOR LOGIKA
+           ========================================================================= */
+        function calculateEnergy() {
+            const itLoad = parseFloat(document.getElementById('itLoadSlider').value);
+            const pue = parseFloat(document.getElementById('pueSlider').value);
+
+            document.getElementById('itLoadVal').textContent = itLoad + ' MW';
+            document.getElementById('pueVal').textContent = pue.toFixed(2);
+
+            const totalPower = itLoad * pue;
+            const coolingOverhead = totalPower - itLoad;
+            // Éves GWh = MW * 8760 óra / 1000
+            const annualGwh = (totalPower * 8760) / 1000;
+            // Átlagos európai háztartás ~3.6 MWh/év (0.0036 GWh)
+            const households = Math.round((annualGwh * 1000) / 3.6);
+
+            document.getElementById('totalFacilityPower').textContent = totalPower.toFixed(2) + ' MW';
+            document.getElementById('coolingOverheadPower').textContent = coolingOverhead.toFixed(2) + ' MW';
+            document.getElementById('annualGwh').textContent = annualGwh.toFixed(1) + ' GWh/év';
+            document.getElementById('householdEq').textContent = '~' + households.toLocaleString('hu-HU') + ' háztartás éves igénye';
+
+            const badge = document.getElementById('efficiencyBadge');
+            const bar = document.getElementById('pueProgressBar');
+
+            // Csík százalék (1.05 -> 98%, 2.00 -> 15%)
+            const pct = Math.max(12, Math.min(98, Math.round(100 - ((pue - 1.05) / 0.95) * 85)));
+            bar.style.width = pct + '%';
+
+            if (pue <= 1.15) {
+                badge.textContent = 'HIPERHATÉKONY (IMMERZIÓS / AI)';
+                badge.className = 'font-mono text-base font-bold text-neonCyan mt-1';
+            } else if (pue <= 1.30) {
+                badge.textContent = 'KIVÁLÓ (FOLYADÉKHŰTÉS)';
+                badge.className = 'font-mono text-base font-bold text-emerald-400 mt-1';
+            } else if (pue <= 1.55) {
+                badge.textContent = 'ÁTLAGOS (LÉGHŰTÉSES)';
+                badge.className = 'font-mono text-base font-bold text-neonAmber mt-1';
+            } else {
+                badge.textContent = 'KRITIKUS VESZTESÉG (ELAVULT)';
+                badge.className = 'font-mono text-base font-bold text-red-400 mt-1';
+            }
+        }
+
+        function setPuePreset(mw, pueVal) {
+            document.getElementById('itLoadSlider').value = mw;
+            document.getElementById('pueSlider').value = pueVal;
+            calculateEnergy();
+        }
+
+        /* =========================================================================
+           2. MODUL: REDUNDANCIA ARCHITEKTÚRA & ÁRAMSZÜNET SZIMULÁTOR
+           ========================================================================= */
+        let currentArch = '2N+1';
+        let isGridAFailed = false;
+
+        function setRedundancyArch(arch) {
+            currentArch = arch;
+            isGridAFailed = false;
+            updateRedundancyUI();
+        }
+
+        function triggerGridFailure() {
+            isGridAFailed = true;
+            updateRedundancyUI();
+        }
+
+        function resetGridSimulation() {
+            isGridAFailed = false;
+            updateRedundancyUI();
+        }
+
+        function updateRedundancyUI() {
+            // Gombok aktív kijelölése
+            const btnMap = {
+                'N': 'archBtnN',
+                'N+1': 'archBtnN1',
+                '2N': 'archBtn2N',
+                '2N+1': 'archBtn2N1'
+            };
+            Object.keys(btnMap).forEach(k => {
+                const el = document.getElementById(btnMap[k]);
+                if (k === currentArch) {
+                    el.className = 'px-3.5 py-2 rounded-lg font-mono text-xs font-bold border transition bg-emerald-500/20 text-neonEmerald border-neonEmerald shadow-[0_0_15px_rgba(16,185,129,0.25)]';
+                } else {
+                    el.className = 'px-3.5 py-2 rounded-lg font-mono text-xs font-bold border transition bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500';
+                }
+            });
+
+            const feedACard = document.getElementById('feedACard');
+            const feedPlusCard = document.getElementById('feedPlusCard');
+            const feedBCard = document.getElementById('feedBCard');
+            const rackBox = document.getElementById('serverRackStatusBox');
+
+            // Alaphelyzetek topológia szerint
+            if (currentArch === 'N') {
+                document.getElementById('currentArchLabel').textContent = 'N (Alapszintű - Nincs Tartalék)';
+                document.getElementById('archAnalysisTitle').textContent = 'N Topológia (Tier I)';
+                document.getElementById('archAnalysisText').textContent = 'Egyetlen betáplálási útvonal tartalék modulok nélkül. Bármilyen hálózati hiba vagy kötelező karbantartás a szerverek azonnali leállását okozza.';
+                document.getElementById('metricConcurrent').textContent = 'NEM';
+                document.getElementById('metricConcurrent').className = 'text-red-400 font-bold';
+                document.getElementById('metricFaultTol').textContent = 'NINCS';
+                document.getElementById('metricFaultTol').className = 'text-red-400 font-bold';
+                document.getElementById('metricDowntime').textContent = '28.8 óra / év';
+                document.getElementById('slaBadge').textContent = 'SLA: 99.671%';
+
+                feedPlusCard.style.opacity = '0.25';
+                feedBCard.style.opacity = '0.25';
+                document.getElementById('plusRoleStatus').textContent = 'NINCS BEÉPÍTVE';
+                document.getElementById('genBStatus').textContent = 'INAKTÍV';
+                document.getElementById('upsBStatus').textContent = 'INAKTÍV';
+            } else if (currentArch === 'N+1') {
+                document.getElementById('currentArchLabel').textContent = 'N+1 (Aktív + 1 Tartalék Modul)';
+                document.getElementById('archAnalysisTitle').textContent = 'N+1 Topológia (Tier II / III)';
+                document.getElementById('archAnalysisText').textContent = 'Egyetlen fő elosztó ág, de egy tartalék (+1) UPS és generátor modullal biztosítva. Egyetlen komponens kiesését túléli a rendszer.';
+                document.getElementById('metricConcurrent').textContent = 'RÉSZLEGES / IGEN';
+                document.getElementById('metricConcurrent').className = 'text-neonCyan font-bold';
+                document.getElementById('metricFaultTol').textContent = 'MODUL SZINTEN';
+                document.getElementById('metricFaultTol').className = 'text-neonCyan font-bold';
+                document.getElementById('metricDowntime').textContent = '1.6 óra / év';
+                document.getElementById('slaBadge').textContent = 'SLA: 99.982%';
+
+                feedPlusCard.style.opacity = '1';
+                feedBCard.style.opacity = '0.25';
+                document.getElementById('plusRoleStatus').textContent = isGridAFailed ? 'AKTÍV ÁTVÉTEL (100%)' : 'HOT-STANDBY';
+                document.getElementById('genBStatus').textContent = 'NINCS B ÁG';
+                document.getElementById('upsBStatus').textContent = 'NINCS B ÁG';
+            } else if (currentArch === '2N') {
+                document.getElementById('currentArchLabel').textContent = '2N (Kettős Tükrözött Áramkör)';
+                document.getElementById('archAnalysisTitle').textContent = '2N Topológia (Tier IV)';
+                document.getElementById('archAnalysisText').textContent = 'Két teljesen független, tükrözött áramellátó rendszer (A és B ág). Ha az A ág teljesen megsemmisül, a B ág 0 ms alatt viszi tovább a teljes szerverterhelést.';
+                document.getElementById('metricConcurrent').textContent = 'IGEN (100%)';
+                document.getElementById('metricConcurrent').className = 'text-emerald-400 font-bold';
+                document.getElementById('metricFaultTol').textContent = 'TELJES (A/B)';
+                document.getElementById('metricFaultTol').className = 'text-emerald-400 font-bold';
+                document.getElementById('metricDowntime').textContent = '26.3 perc / év';
+                document.getElementById('slaBadge').textContent = 'SLA: 99.995%';
+
+                feedPlusCard.style.opacity = '0.25';
+                feedBCard.style.opacity = '1';
+                document.getElementById('plusRoleStatus').textContent = '2N TÜKRÖZÖTT';
+                document.getElementById('genBStatus').textContent = isGridAFailed ? 'ONLINE (100% TERHELÉS)' : 'ONLINE (50% TERHELÉS)';
+                document.getElementById('upsBStatus').textContent = 'AKTÍV (98%)';
+            } else {
+                // 2N+1
+                document.getElementById('currentArchLabel').textContent = '2N+1 (Duplikált Rendszer + Extra Tartalék)';
+                document.getElementById('archAnalysisTitle').textContent = '2N+1 Maximális Védelem';
+                document.getElementById('archAnalysisText').textContent = 'Két teljesen független betáplálási útvonal (A és B), kiegészítve egy extra tartalék modullal (+1). Még karbantartás közbeni váratlan áramszünet esetén is 100% üzembiztos.';
+                document.getElementById('metricConcurrent').textContent = 'IGEN (100%)';
+                document.getElementById('metricConcurrent').className = 'text-emerald-400 font-bold';
+                document.getElementById('metricFaultTol').textContent = 'AUTOMATIKUS (2N+1)';
+                document.getElementById('metricFaultTol').className = 'text-emerald-400 font-bold';
+                document.getElementById('metricDowntime').textContent = '< 26 perc / év';
+                document.getElementById('slaBadge').textContent = 'SLA: 99.995%+';
+
+                feedPlusCard.style.opacity = '1';
+                feedBCard.style.opacity = '1';
+                document.getElementById('plusRoleStatus').textContent = isGridAFailed ? 'AKTÍV KIEGÉSZÍTÉS' : 'HOT-STANDBY';
+                document.getElementById('genBStatus').textContent = isGridAFailed ? 'ONLINE (100% TERHELÉS)' : 'ONLINE (50% TERHELÉS)';
+                document.getElementById('upsBStatus').textContent = 'AKTÍV (98%)';
+            }
+
+            // Hiba szimuláció megjelenítése az 'A' ágon és a Szervereken
+            if (isGridAFailed) {
+                feedACard.className = 'p-4 rounded-xl border border-red-500/60 bg-red-950/25 transition-all';
+                document.getElementById('feedATitle').className = 'font-mono text-xs font-bold text-red-400';
+                document.getElementById('feedAStatusDot').className = 'w-2.5 h-2.5 rounded-full bg-red-500 animate-ping';
+                document.getElementById('genAStatus').textContent = 'KRITIKUS HIBA (0V)';
+                document.getElementById('genAStatus').className = 'text-red-400 font-bold';
+                document.getElementById('upsAStatus').textContent = 'LEKAPCSOLVA';
+                document.getElementById('upsAStatus').className = 'text-red-400 font-bold';
+
+                if (currentArch === 'N') {
+                    rackBox.className = 'mt-4 p-4 rounded-xl border border-red-500 bg-red-950/30 flex flex-col sm:flex-row items-center justify-between gap-4';
+                    document.getElementById('rackIconBox').className = 'w-10 h-10 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center text-lg';
+                    document.getElementById('rackStatusTitle').textContent = 'SZERVERFÜRTÖK LEÁLLTAK! (100% BLACKOUT)';
+                    document.getElementById('rackStatusTitle').className = 'font-mono text-sm font-bold text-red-400';
+                    document.getElementById('rackStatusDesc').textContent = 'Nincs redundáns ág: az A ág kiesése miatt minden szolgáltatás megszakadt.';
+                } else {
+                    rackBox.className = 'mt-4 p-4 rounded-xl border border-emerald-500 bg-emerald-950/20 flex flex-col sm:flex-row items-center justify-between gap-4';
+                    document.getElementById('rackIconBox').className = 'w-10 h-10 rounded-lg bg-emerald-500/20 text-neonEmerald flex items-center justify-center text-lg';
+                    document.getElementById('rackStatusTitle').textContent = 'SZERVERFÜRTÖK: 100% ONLINE (AUTOMATIKUS ÁTTERHELÉS)';
+                    document.getElementById('rackStatusTitle').className = 'font-mono text-sm font-bold text-emerald-300';
+                    document.getElementById('rackStatusDesc').textContent = `A(z) ${currentArch} redundancia-architektúra 0 ms alatt átvette a teljes terhelést!`;
+                }
+            } else {
+                feedACard.className = 'p-4 rounded-xl border border-emerald-500/40 bg-emerald-950/15 transition-all';
+                document.getElementById('feedATitle').className = 'font-mono text-xs font-bold text-emerald-400';
+                document.getElementById('feedAStatusDot').className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]';
+                document.getElementById('genAStatus').textContent = 'ONLINE (400V)';
+                document.getElementById('genAStatus').className = 'text-emerald-400';
+                document.getElementById('upsAStatus').textContent = 'AKTÍV (98%)';
+                document.getElementById('upsAStatus').className = 'text-emerald-400';
+
+                rackBox.className = 'mt-4 p-4 rounded-xl border border-emerald-500/40 bg-slate-900/90 flex flex-col sm:flex-row items-center justify-between gap-4';
+                document.getElementById('rackIconBox').className = 'w-10 h-10 rounded-lg bg-emerald-500/20 text-neonEmerald flex items-center justify-center text-lg';
+                document.getElementById('rackStatusTitle').textContent = 'KRITIKUS SZERVERFÜRTÖK: 100% ONLINE (ZÉRÓ KIESÉS)';
+                document.getElementById('rackStatusTitle').className = 'font-mono text-sm font-bold text-white';
+                document.getElementById('rackStatusDesc').textContent = 'A Dual-PSU szerverek zavartalanul üzemelnek.';
+            }
+        }
+
+        /* =========================================================================
+           3. MODUL: AI HŐTÉRKÉP ÉS AUTONÓM HŰTÉS SZIMULÁTOR
+           ========================================================================= */
+        let isAiCoolingActive = true;
+
+        function renderThermalGrid() {
+            const grid = document.getElementById('rackGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            let totalTemp = 0;
+            let hotspots = 0;
+
+            for (let i = 1; i <= 24; i++) {
+                let temp;
+                if (isAiCoolingActive) {
+                    // AI aktív: egyenletes 23 - 29 °C közötti hőmérséklet
+                    temp = (23.5 + Math.random() * 5.2).toFixed(1);
+                } else {
+                    // AI kikapcsolva: ingadozó 29 - 49 °C, több hotspot
+                    temp = (29.0 + Math.random() * 19.5).toFixed(1);
+                }
+
+                totalTemp += parseFloat(temp);
+                let colorClass = '';
+                if (temp <= 28.5) {
+                    colorClass = 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300';
+                } else if (temp <= 35.5) {
+                    colorClass = 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300';
+                } else if (temp <= 44.0) {
+                    colorClass = 'bg-amber-500/25 border-amber-500/60 text-amber-300';
+                } else {
+                    colorClass = 'bg-red-500/30 border-red-500 text-red-300 animate-pulse';
+                    hotspots++;
+                }
+
+                const cell = document.createElement('div');
+                cell.className = `p-2 rounded-lg border font-mono text-center transition-all duration-500 ${colorClass}`;
+                cell.innerHTML = `
+                    <div class="text-[10px] opacity-75">R-${i < 10 ? '0' + i : i}</div>
+                    <div class="text-xs font-bold mt-0.5">${temp}°C</div>
+                `;
+                grid.appendChild(cell);
+            }
+
+            const avg = (totalTemp / 24).toFixed(1);
+            const avgEl = document.getElementById('aiAvgTemp');
+            const hotEl = document.getElementById('aiHotspotCount');
+            const pueEl = document.getElementById('aiLivePue');
+            const saveEl = document.getElementById('aiCoolingSave');
+
+            avgEl.textContent = avg + ' °C';
+            if (isAiCoolingActive) {
+                avgEl.className = 'font-mono text-2xl sm:text-3xl font-extrabold text-neonCyan mt-1';
+                hotEl.textContent = '0 db lokális túlmelegedés (Optimális)';
+                hotEl.className = 'text-xs text-emerald-400 font-mono mt-1';
+                pueEl.textContent = (1.08 + Math.random() * 0.02).toFixed(2);
+                pueEl.className = 'font-mono text-2xl sm:text-3xl font-extrabold text-neonEmerald mt-1';
+                saveEl.textContent = '-38% hűtési energiaigény';
+            } else {
+                avgEl.className = 'font-mono text-2xl sm:text-3xl font-extrabold text-neonAmber mt-1';
+                hotEl.textContent = `${hotspots} db KRITIKUS HOTSPOT (>45°C)!`;
+                hotEl.className = 'text-xs text-red-400 font-mono mt-1 font-bold';
+                pueEl.textContent = (1.46 + Math.random() * 0.05).toFixed(2);
+                pueEl.className = 'font-mono text-2xl sm:text-3xl font-extrabold text-neonAmber mt-1';
+                saveEl.textContent = '0% megtakarítás (Fix fordulatszám)';
+            }
+
+            appendAiLog(avg, hotspots);
+        }
+
+        function appendAiLog(avgTemp, hotspots) {
+            const logBox = document.getElementById('aiLogConsole');
+            if (!logBox) return;
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+
+            const line = document.createElement('div');
+            if (isAiCoolingActive) {
+                const rackNum = Math.floor(Math.random() * 24) + 1;
+                const flow = (12.4 + Math.random() * 3).toFixed(1);
+                line.innerHTML = `<span class="text-slate-500">[${timeStr}]</span> <span class="text-neonCyan">[AI-RL]</span> R-${rackNum < 10 ? '0'+rackNum : rackNum} DLC szelep finomhangolva (${flow} L/perc) | Átlag: ${avgTemp}°C`;
+            } else {
+                line.innerHTML = `<span class="text-slate-500">[${timeStr}]</span> <span class="text-neonAmber">[MANUÁLIS]</span> Fix CRAC léghűtés | Figyelem: ${hotspots} db hőtorlódás észlelve!`;
+            }
+
+            logBox.prepend(line);
+            while (logBox.children.length > 8) {
+                logBox.removeChild(logBox.lastChild);
+            }
+        }
+
+        function toggleAiCooling() {
+            isAiCoolingActive = !isAiCoolingActive;
+            const btn = document.getElementById('aiToggleBtn');
+            const btnText = document.getElementById('aiBtnText');
+            const modeLabel = document.getElementById('thermalModeLabel');
+
+            if (isAiCoolingActive) {
+                btn.className = 'px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition bg-gradient-to-r from-cyan-500 to-blue-600 text-obsidian shadow-[0_0_20px_rgba(6,182,212,0.4)] flex items-center gap-2';
+                btnText.textContent = 'AI AUTONÓM HŰTÉS: BEKAPCSOLVA';
+                modeLabel.textContent = 'MÓD: NEURÁLIS FOLYADÉKHŰTÉS';
+                modeLabel.className = 'text-neonCyan font-bold';
+            } else {
+                btn.className = 'px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition bg-amber-500/20 text-neonAmber border border-amber-500/50 flex items-center gap-2';
+                btnText.textContent = 'AI KIKAPCSOLVA (HAGYOMÁNYOS HŰTÉS)';
+                modeLabel.textContent = 'MÓD: HAGYOMÁNYOS TERMOSZTÁT';
+                modeLabel.className = 'text-neonAmber font-bold';
+            }
+            renderThermalGrid();
+        }
+
+        /* =========================================================================
+           4. MODUL: GITHUB KÉPFORRÁS VÁLTÓ (FELHŐ URL vs. kep1.jpg, kep2.jpg, kep3.jpg)
+           ========================================================================= */
+        const cloudImages = [
+            'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=85',
+            'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=1200&q=85',
+            'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=85'
+        ];
+
+        const localImages = ['kep1.jpg', 'kep2.jpg', 'kep3.jpg'];
+
+        function toggleImageSourceModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function setImageMode(mode) {
+            const img1 = document.getElementById('dcImage1');
+            const img2 = document.getElementById('dcImage2');
+            const img3 = document.getElementById('dcImage3');
+            const btnCloud = document.getElementById('btnCloudMode');
+            const btnLocal = document.getElementById('btnLocalMode');
+
+            if (mode === 'local') {
+                img1.src = localImages[0];
+                img2.src = localImages[1];
+                img3.src = localImages[2];
+                btnLocal.className = 'p-3 rounded-xl border border-neonEmerald bg-emerald-500/20 text-left transition';
+                btnCloud.className = 'p-3 rounded-xl border border-slate-700 bg-slate-900/60 text-left hover:border-slate-500 transition';
+            } else {
+                img1.src = cloudImages[0];
+                img2.src = cloudImages[1];
+                img3.src = cloudImages[2];
+                btnCloud.className = 'p-3 rounded-xl border border-neonCyan bg-cyan-500/20 text-left transition';
+                btnLocal.className = 'p-3 rounded-xl border border-slate-700 bg-slate-900/60 text-left hover:border-slate-500 transition';
+            }
+        }
+
+        // Inicializálás az oldal betöltésekor
+        window.onload = function () {
+            calculateEnergy();
+            updateRedundancyUI();
+            renderThermalGrid();
+            setInterval(renderThermalGrid, 3500);
+        };
+    </script>
+</body>
+</html>
